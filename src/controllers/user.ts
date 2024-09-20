@@ -15,10 +15,7 @@ export class UserController {
   }
 
   // Méthode pour créer un nouvel utilisateur dans Firestore.
-  public postUser = async (
-    req: Request,
-    res: Response
-  ): Promise<Response<UserResponse, Record<string, UserResponse>>> => {
+  public postUser = async (req: Request, res: Response) => {
     const data = req.body; // Récupération des données du corps de la requête.
 
     // Vérification que tous les champs requis sont présents.
@@ -66,14 +63,11 @@ export class UserController {
   };
 
   // Méthode pour récupérer tous les utilisateurs de la collection Firestore.
-  public getUsers = async (
-    req: Request,
-    res: Response
-  ): Promise<Response<UserResponse, Record<string, UserResponse>>> => {
+  public getUsers = async (req: Request, res: Response) => {
     try {
       const usersSnapshot = await this.collection.get(); // Récupération de tous les documents de la collection.
       if (usersSnapshot.empty) {
-        return res.status(204).json({ message: "Pas de données" }); // Si la collection est vide, renvoie un code 204 (No Content).
+        return res.status(203).json({ message: "Pas de données" }); // Si la collection est vide, renvoie un code 203 (No Content).
       } else {
         // Transformation des documents en tableau d'utilisateurs.
         const users: UserResponse[] = usersSnapshot.docs.map(
@@ -92,10 +86,7 @@ export class UserController {
   };
 
   // Méthode pour récupérer un utilisateur spécifique par son ID.
-  public getOneUser = async (
-    req: Request,
-    res: Response
-  ): Promise<Response<UserResponse, Record<string, UserResponse>>> => {
+  public getOneUser = async (req: Request, res: Response) => {
     const { id } = req.params; // Récupération de l'ID de l'utilisateur à partir des paramètres de la requête.
     try {
       const usersSnapshot = await this.collection.doc(id).get(); // Récupération du document utilisateur par son ID.
@@ -115,14 +106,14 @@ export class UserController {
   // Méthode pour supprimer un utilisateur par son ID.
   public deleteUser = async (req: Request, res: Response) => {
     const { id } = req.params; // Récupération de l'ID de l'utilisateur à supprimer.
-    UserController.verifyUserByToken(req, res, async () => {
+    UserController.verifyUserByTokenForUserController(req, res, async () => {
       try {
         const usersSnapshot = await this.collection.doc(id).get(); // Récupération du document utilisateur.
         if (!usersSnapshot.exists) {
-          return res.status(204).send("pas d'enregistrement"); // Si l'utilisateur n'existe pas, on renvoie une réponse 204.
+          return res.status(203).send("pas d'enregistrement"); // Si l'utilisateur n'existe pas, on renvoie une réponse 203.
         } else {
           const userDelete = await this.collection.doc(id).delete(); // Suppression de l'utilisateur.
-          return res.status(204).json({ message: "Effacement OK", userDelete }); // Retourne une confirmation de la suppression.
+          return res.status(203).json({ message: "Effacement OK", userDelete }); // Retourne une confirmation de la suppression.
         }
       } catch (error) {
         return res
@@ -137,30 +128,36 @@ export class UserController {
     const { id } = req.params; // Récupération de l'ID de l'utilisateur à mettre à jour.
     const updatedData: Partial<User> = req.body; // Données à mettre à jour.
 
-    await UserController.verifyUserByToken(req, res, async () => {
-      if (updatedData.username) {
-        return res
-          .status(403)
-          .send("Il est interdit de changer son nom d'utilisateur"); // Empêche la mise à jour du nom d'utilisateur.
-      }
-      try {
-        const usersSnapshot = await this.collection.doc(id).get(); // Récupération de l'utilisateur.
-        if (!usersSnapshot) {
-          return res.status(204).send("pas d'enregistrement"); // Si l'utilisateur n'existe pas, on renvoie une réponse 204.
-        } else {
-          const userUpdate = await this.collection.doc(id).update(updatedData); // Mise à jour des données utilisateur.
-          return res.status(200).json({
-            message: "Mise à jour OK", // Retourne une confirmation de la mise à jour.
-            userUpdate,
-            token: res.locals.newToken, // Ajoute le nouveau token dans la réponse.
-          });
+    await UserController.verifyUserByTokenForUserController(
+      req,
+      res,
+      async () => {
+        if (updatedData.username) {
+          return res
+            .status(403)
+            .send("Il est interdit de changer son nom d'utilisateur"); // Empêche la mise à jour du nom d'utilisateur.
         }
-      } catch (error) {
-        return res
-          .status(500)
-          .send("Erreur lors de la mise à jour des données"); // Gestion des erreurs lors de la mise à jour.
+        try {
+          const usersSnapshot = await this.collection.doc(id).get(); // Récupération de l'utilisateur.
+          if (!usersSnapshot) {
+            return res.status(203).send("pas d'enregistrement"); // Si l'utilisateur n'existe pas, on renvoie une réponse 203.
+          } else {
+            const userUpdate = await this.collection
+              .doc(id)
+              .update(updatedData); // Mise à jour des données utilisateur.
+            return res.status(200).json({
+              message: "Mise à jour OK", // Retourne une confirmation de la mise à jour.
+              userUpdate,
+              token: res.locals.newToken, // Ajoute le nouveau token dans la réponse.
+            });
+          }
+        } catch (error) {
+          return res
+            .status(500)
+            .send("Erreur lors de la mise à jour des données"); // Gestion des erreurs lors de la mise à jour.
+        }
       }
-    });
+    );
   };
 
   // Méthode privée pour récupérer un utilisateur par son nom d'utilisateur.
@@ -180,7 +177,7 @@ export class UserController {
   };
 
   // Middleware pour vérifier l'utilisateur avec un token JWT.
-  private static verifyUserByToken = async (
+  private static verifyUserByTokenForUserController = async (
     req: Request,
     res: Response,
     next: NextFunction

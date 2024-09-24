@@ -1,7 +1,7 @@
 import { Router } from "express";
 import { HabitatController } from "../controllers/habitat";
 
-export const controller = new HabitatController("habitats");
+const controller = new HabitatController("habitats");
 
 export const habitatRouter = Router();
 

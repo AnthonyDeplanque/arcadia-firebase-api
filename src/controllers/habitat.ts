@@ -131,68 +131,83 @@ export class HabitatController {
     }
   };
 
-  public addImagesToHabitat = async(req:Request, res:Response) => {
-    const {id} = req.params
-    const images:string[] = req.body
-    try{
-      const habitatSnapshot = await this.collection.doc(id).get()
-      if (habitatSnapshot.exists){
-        const habitat:Partial<Habitat> = habitatSnapshot.data() as Habitat
-        images.forEach(image=>habitat.images_id?.push(image))
-        try{
-          getRoleAndRenewToken(req, res, async () => {
-            const user = res.locals.user;
-            const token = res.locals.newToken;
+  public addImagesToHabitat = async (req: Request, res: Response) => {
+    const { id } = req.params;
+    const images: string[] = req.body;
   
-            if (user.role !== 0) {
-              return res.status(403).send("INTERDIT POUR VOTRE RÔLE");
-            }
-            const docRef = await this.collection.doc(id).update(habitat);
-            return res.status(200).json({
-              message: `document mis à jour avec id : ${id}`, // Retourne l'ID du document ajouté.
-              data: docRef,
-              token,
-            });
-          });
-        } catch(error){return errorHandler(res)}
-      } else{
-        return res.status(404).send("Pas de données")
+    if (!Array.isArray(images)) {
+      return res.status(400).send("Les données fournies ne sont pas valides.");
+    }
+  
+    try {
+      const habitatSnapshot = await this.collection.doc(id).get();
+      if (!habitatSnapshot.exists) {
+        return res.status(404).send("Pas de données.");
       }
-    }catch(error){return errorHandler(res )}
-  }
-
   
-  public removeImagesToHabitat = async(req:Request, res:Response) => {
-    const {id} = req.params
-    const images:string[] = req.body
-    try{
-      const habitatSnapshot = await this.collection.doc(id).get()
-      if (habitatSnapshot.exists){
-        const habitat:Partial<Habitat> = habitatSnapshot.data() as Habitat
-        
-          habitat.images_id =  habitat.images_id?.filter(image => !images.includes(image));
-        
-        try{
-          getRoleAndRenewToken(req, res, async () => {
-            const user = res.locals.user;
-            const token = res.locals.newToken;
+      const habitat: Partial<Habitat> = habitatSnapshot.data() as Habitat;
+      habitat.images_id = habitat.images_id || []; // Initialiser si undefined
+      images.forEach(image => habitat.images_id!.push(image)); // On peut maintenant utiliser 'push'
   
-            if (user.role !== 0) {
-              return res.status(403).send("INTERDIT POUR VOTRE RÔLE");
-            }
-            const docRef = await this.collection.doc(id).update(habitat);
-            return res.status(200).json({
-              message: `document mis à jour avec id : ${id}`, // Retourne l'ID du document ajouté.
-              data: docRef,
-              token,
-            });
-          });
-        } catch(error){return errorHandler(res)}
-      } else{
-        return res.status(404).send("Pas de données")
+      getRoleAndRenewToken(req, res, async () => {
+        const user = res.locals.user;
+        const token = res.locals.newToken;
+  
+        if (user.role !== 0) {
+          return res.status(403).send("INTERDIT POUR VOTRE RÔLE");
+        }
+  
+        await this.collection.doc(id).update({ images_id: habitat.images_id });
+        return res.status(200).json({
+          message: `Document mis à jour avec id : ${id}`,
+          token,
+        });
+      });
+  
+    } catch (error) {
+      return errorHandler(res);
+    }
+  };
+  
+  public removeImagesToHabitat = async (req: Request, res: Response) => {
+    const { id } = req.params;
+    const images: string[] = req.body;
+  
+    if (!Array.isArray(images)) {
+      return res.status(400).send("Les données fournies ne sont pas valides.");
+    }
+  
+    try {
+      const habitatSnapshot = await this.collection.doc(id).get();
+      if (!habitatSnapshot.exists) {
+        return res.status(404).send("Pas de données.");
       }
-    }catch(error){return errorHandler(res )}
   
-  }
-
+      const habitat: Partial<Habitat> = habitatSnapshot.data() as Habitat;
+  
+      if (habitat.images_id) {
+        habitat.images_id = habitat.images_id.filter(image => !images.includes(image));
+      } else {
+        return res.status(400).send("Pas d'images à supprimer.");
+      }
+  
+      getRoleAndRenewToken(req, res, async () => {
+        const user = res.locals.user;
+        const token = res.locals.newToken;
+  
+        if (user.role !== 0) {
+          return res.status(403).send("INTERDIT POUR VOTRE RÔLE");
+        }
+  
+        await this.collection.doc(id).update({ images_id: habitat.images_id });
+        return res.status(200).json({
+          message: `Document mis à jour avec id : ${id}`,
+          token,
+        });
+      });
+  
+    } catch (error) {
+      return errorHandler(res);
+    }
+  };
 }

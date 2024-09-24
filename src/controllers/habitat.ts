@@ -1,4 +1,4 @@
-import { request, Request, Response } from "express";
+import { Request, Response } from "express";
 import { admin } from "../firebase-config";
 import { Habitat } from "../interfaces/habitat";
 import { getRoleAndRenewToken } from "../middleware/auth-middleware";
@@ -41,7 +41,6 @@ export class HabitatController {
     }
   };
   public postHabitat = async (req: Request, res: Response) => {
-    const { id } = req.params;
     const habitat = req.body; // Récupération des données du corps de la requête.
     try {
       // Vérification que tous les champs requis sont présents.
@@ -52,7 +51,7 @@ export class HabitatController {
           return res.status(403).send(`${field} est manquant`); // Si un champ obligatoire est manquant, on renvoie un message d'erreur.
         } else continue;
       }
-      await getRoleAndRenewToken(req, res, async () => {
+      getRoleAndRenewToken(req, res, async () => {
         const user = res.locals.user;
         const token = res.locals.newToken;
 
@@ -78,11 +77,11 @@ export class HabitatController {
 
   public putHabitat = async (req: Request, res: Response) => {
     const { id } = req.params;
-    const habitat = req.body;
+    const habitat:Partial<Habitat> = req.body;
     try {
       const habitatSnapshot = await this.collection.doc(id).get();
       if (habitatSnapshot.exists) {
-        await getRoleAndRenewToken(req, res, async () => {
+        getRoleAndRenewToken(req, res, async () => {
           const user = res.locals.user;
           const token = res.locals.newToken;
 
@@ -110,7 +109,7 @@ export class HabitatController {
     try {
       const habitatSnapshot = await this.collection.doc(id).get();
       if (habitatSnapshot.exists) {
-        await getRoleAndRenewToken(req, res, async () => {
+      getRoleAndRenewToken(req, res, async () => {
           const user = res.locals.user;
           const token = res.locals.newToken;
 
@@ -132,5 +131,68 @@ export class HabitatController {
     }
   };
 
-  // TODO : Create a controller for image insertion or deletion
+  public addImagesToHabitat = async(req:Request, res:Response) => {
+    const {id} = req.params
+    const images:string[] = req.body
+    try{
+      const habitatSnapshot = await this.collection.doc(id).get()
+      if (habitatSnapshot.exists){
+        const habitat:Partial<Habitat> = habitatSnapshot.data() as Habitat
+        images.forEach(image=>habitat.images_id?.push(image))
+        try{
+          getRoleAndRenewToken(req, res, async () => {
+            const user = res.locals.user;
+            const token = res.locals.newToken;
+  
+            if (user.role !== 0) {
+              return res.status(403).send("INTERDIT POUR VOTRE RÔLE");
+            }
+            const docRef = await this.collection.doc(id).update(habitat);
+            return res.status(200).json({
+              message: `document mis à jour avec id : ${id}`, // Retourne l'ID du document ajouté.
+              data: docRef,
+              token,
+            });
+          });
+        } catch(error){return errorHandler(res)}
+      } else{
+        return res.status(404).send("Pas de données")
+      }
+    }catch(error){return errorHandler(res )}
+  }
+
+  
+  public removeImagesToHabitat = async(req:Request, res:Response) => {
+    const {id} = req.params
+    const images:string[] = req.body
+    try{
+      const habitatSnapshot = await this.collection.doc(id).get()
+      if (habitatSnapshot.exists){
+        const habitat:Partial<Habitat> = habitatSnapshot.data() as Habitat
+        
+          habitat.images_id =  habitat.images_id?.filter(image => !images.includes(image));
+        
+        try{
+          getRoleAndRenewToken(req, res, async () => {
+            const user = res.locals.user;
+            const token = res.locals.newToken;
+  
+            if (user.role !== 0) {
+              return res.status(403).send("INTERDIT POUR VOTRE RÔLE");
+            }
+            const docRef = await this.collection.doc(id).update(habitat);
+            return res.status(200).json({
+              message: `document mis à jour avec id : ${id}`, // Retourne l'ID du document ajouté.
+              data: docRef,
+              token,
+            });
+          });
+        } catch(error){return errorHandler(res)}
+      } else{
+        return res.status(404).send("Pas de données")
+      }
+    }catch(error){return errorHandler(res )}
+  
+  }
+
 }

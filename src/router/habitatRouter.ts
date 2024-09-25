@@ -5,7 +5,7 @@ export const controller = new HabitatController("habitats");
 
 export const habitatRouter = Router();
 
-habitatRouter.get("/", controller.getHabitat);
+habitatRouter.get("/", controller.getHabitats);
 habitatRouter.get("/:id", controller.getOneHabitat);
 habitatRouter.post("/", controller.postHabitat);
 habitatRouter.put("/:id", controller.putHabitat);

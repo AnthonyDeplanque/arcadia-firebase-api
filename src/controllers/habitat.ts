@@ -1,8 +1,9 @@
-import { request, Request, Response } from "express";
+import { Request, Response } from "express";
 import { admin } from "../firebase-config";
 import { Habitat } from "../interfaces/habitat";
 import { getRoleAndRenewToken } from "../middleware/auth-middleware";
 import { errorHandler } from "../middleware/errorHandler";
+import { checkRequiredFields } from "../middleware/check-required-fields";
 
 export class HabitatController {
   private db;
@@ -12,11 +13,11 @@ export class HabitatController {
     this.collection = this.db.collection(collection);
   }
 
-  public getHabitat = async (_req: Request, res: Response) => {
+  public getHabitats = async (_req: Request, res: Response) => {
     try {
       const habitatSnapshot = await this.collection.get();
       if (habitatSnapshot.empty) {
-        return res.status(203).json({ message: "Pas de données" });
+        return res.status(404).json({ message: "Pas de données" });
       }
       const habitats: Habitat[] = habitatSnapshot.docs.map((doc) => ({
         id: doc.id,
@@ -24,7 +25,7 @@ export class HabitatController {
       }));
       return res.status(200).json(habitats);
     } catch (error) {
-      return errorHandler(res);
+      return errorHandler(res, error);
     }
   };
   public getOneHabitat = async (req: Request, res: Response) => {
@@ -32,7 +33,7 @@ export class HabitatController {
     try {
       const habitatSnapshot = await this.collection.doc(id).get();
       if (!habitatSnapshot) {
-        return res.status(203).json({ message: "Pas de données" });
+        return res.status(404).json({ message: "Pas de données" });
       }
       const habitat = habitatSnapshot.data() as Habitat;
       return res.status(200).json({ id, ...habitat });
@@ -41,22 +42,18 @@ export class HabitatController {
     }
   };
   public postHabitat = async (req: Request, res: Response) => {
-    const { id } = req.params;
     const habitat = req.body; // Récupération des données du corps de la requête.
     try {
       // Vérification que tous les champs requis sont présents.
       const requiredFields = ["nom", "description", "commentaire"];
-      for (const field of requiredFields) {
-        if (habitat[field] === undefined) {
-          console.log(field, habitat[field]);
-          return res.status(403).send(`${field} est manquant`); // Si un champ obligatoire est manquant, on renvoie un message d'erreur.
-        } else continue;
+      const error = checkRequiredFields(habitat, requiredFields);
+      if (error) {
+        errorHandler(res, error, 403);
       }
+
       await getRoleAndRenewToken(req, res, async () => {
         const user = res.locals.user;
         const token = res.locals.newToken;
-
-        console.log(user, token);
 
         if (user.role !== 0) {
           return res.status(403).send("INTERDIT POUR VOTRE RÔLE");
@@ -70,7 +67,6 @@ export class HabitatController {
           token,
         });
       });
-      // Déstructuration des données reçues.
     } catch (error) {
       return errorHandler(res);
     }

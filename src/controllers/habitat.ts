@@ -3,6 +3,7 @@ import { admin } from "../firebase-config";
 import { Habitat } from "../interfaces/habitat";
 import { getRoleAndRenewToken } from "../middleware/auth-middleware";
 import { errorHandler } from "../middleware/errorHandler";
+import { checkRequiredFields } from "../middleware/check-required-fields";
 
 export class HabitatController {
   private db;
@@ -12,11 +13,11 @@ export class HabitatController {
     this.collection = this.db.collection(collection);
   }
 
-  public getHabitat = async (_req: Request, res: Response) => {
+  public getHabitats = async (_req: Request, res: Response) => {
     try {
       const habitatSnapshot = await this.collection.get();
       if (habitatSnapshot.empty) {
-        return res.status(203).json({ message: "Pas de données" });
+        return res.status(404).json({ message: "Pas de données" });
       }
       const habitats: Habitat[] = habitatSnapshot.docs.map((doc) => ({
         id: doc.id,
@@ -24,7 +25,7 @@ export class HabitatController {
       }));
       return res.status(200).json(habitats);
     } catch (error) {
-      return errorHandler(res);
+      return errorHandler(res, error);
     }
   };
   public getOneHabitat = async (req: Request, res: Response) => {
@@ -32,7 +33,7 @@ export class HabitatController {
     try {
       const habitatSnapshot = await this.collection.doc(id).get();
       if (!habitatSnapshot) {
-        return res.status(203).json({ message: "Pas de données" });
+        return res.status(404).json({ message: "Pas de données" });
       }
       const habitat = habitatSnapshot.data() as Habitat;
       return res.status(200).json({ id, ...habitat });
@@ -45,17 +46,13 @@ export class HabitatController {
     try {
       // Vérification que tous les champs requis sont présents.
       const requiredFields = ["nom", "description", "commentaire"];
-      for (const field of requiredFields) {
-        if (habitat[field] === undefined) {
-          console.log(field, habitat[field]);
-          return res.status(403).send(`${field} est manquant`); // Si un champ obligatoire est manquant, on renvoie un message d'erreur.
-        } else continue;
+      const error = checkRequiredFields(habitat, requiredFields);
+      if (error) {
+        errorHandler(res, error, 403);
       }
       getRoleAndRenewToken(req, res, async () => {
         const user = res.locals.user;
         const token = res.locals.newToken;
-
-        console.log(user, token);
 
         if (user.role !== 0) {
           return res.status(403).send("INTERDIT POUR VOTRE RÔLE");
@@ -69,7 +66,6 @@ export class HabitatController {
           token,
         });
       });
-      // Déstructuration des données reçues.
     } catch (error) {
       return errorHandler(res);
     }
@@ -77,7 +73,7 @@ export class HabitatController {
 
   public putHabitat = async (req: Request, res: Response) => {
     const { id } = req.params;
-    const habitat:Partial<Habitat> = req.body;
+    const habitat: Partial<Habitat> = req.body;
     try {
       const habitatSnapshot = await this.collection.doc(id).get();
       if (habitatSnapshot.exists) {
@@ -109,7 +105,7 @@ export class HabitatController {
     try {
       const habitatSnapshot = await this.collection.doc(id).get();
       if (habitatSnapshot.exists) {
-      getRoleAndRenewToken(req, res, async () => {
+        getRoleAndRenewToken(req, res, async () => {
           const user = res.locals.user;
           const token = res.locals.newToken;
 
@@ -134,78 +130,78 @@ export class HabitatController {
   public addImagesToHabitat = async (req: Request, res: Response) => {
     const { id } = req.params;
     const images: string[] = req.body;
-  
+
     if (!Array.isArray(images)) {
       return res.status(400).send("Les données fournies ne sont pas valides.");
     }
-  
+
     try {
       const habitatSnapshot = await this.collection.doc(id).get();
       if (!habitatSnapshot.exists) {
         return res.status(404).send("Pas de données.");
       }
-  
+
       const habitat: Partial<Habitat> = habitatSnapshot.data() as Habitat;
       habitat.images_id = habitat.images_id || []; // Initialiser si undefined
-      images.forEach(image => habitat.images_id!.push(image)); // On peut maintenant utiliser 'push'
-  
+      images.forEach((image) => habitat.images_id!.push(image)); // On peut maintenant utiliser 'push'
+
       getRoleAndRenewToken(req, res, async () => {
         const user = res.locals.user;
         const token = res.locals.newToken;
-  
+
         if (user.role !== 0) {
           return res.status(403).send("INTERDIT POUR VOTRE RÔLE");
         }
-  
+
         await this.collection.doc(id).update({ images_id: habitat.images_id });
         return res.status(200).json({
           message: `Document mis à jour avec id : ${id}`,
           token,
         });
       });
-  
     } catch (error) {
       return errorHandler(res);
     }
   };
-  
+
   public removeImagesToHabitat = async (req: Request, res: Response) => {
     const { id } = req.params;
     const images: string[] = req.body;
-  
+
     if (!Array.isArray(images)) {
       return res.status(400).send("Les données fournies ne sont pas valides.");
     }
-  
+
     try {
       const habitatSnapshot = await this.collection.doc(id).get();
       if (!habitatSnapshot.exists) {
         return res.status(404).send("Pas de données.");
       }
-  
+
       const habitat: Partial<Habitat> = habitatSnapshot.data() as Habitat;
-  
+
       if (habitat.images_id) {
-        habitat.images_id = habitat.images_id.filter(image => !images.includes(image));
+        habitat.images_id = habitat.images_id.filter(
+          (image) => !images.includes(image)
+        );
       } else {
         return res.status(400).send("Pas d'images à supprimer.");
       }
-  
+
       getRoleAndRenewToken(req, res, async () => {
         const user = res.locals.user;
         const token = res.locals.newToken;
-  
+
         if (user.role !== 0) {
           return res.status(403).send("INTERDIT POUR VOTRE RÔLE");
         }
-  
+
         await this.collection.doc(id).update({ images_id: habitat.images_id });
         return res.status(200).json({
           message: `Document mis à jour avec id : ${id}`,
           token,
         });
       });
-  
     } catch (error) {
       return errorHandler(res);
     }

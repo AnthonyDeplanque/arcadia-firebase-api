@@ -37,6 +37,9 @@ export class AnimalController {
         return res.status(404).json({ message: "Pas de données" });
       }
       const animal = animalSnapshot.data() as Animal;
+      const nbVues = animal.nb_vues ? animal.nb_vues + 1 : 1;
+
+      await this.collection.doc(id).update({ ...animal, nb_vues: nbVues });
       return res.status(200).json({ id, ...animal });
     } catch (error) {
       return errorHandler(res);
@@ -58,7 +61,7 @@ export class AnimalController {
         if (user.role !== 0) {
           return res.status(403).send("INTERDIT POUR VOTRE RÔLE");
         }
-        const docRef = await this.collection.add(animal);
+        const docRef = await this.collection.add({ ...animal, nb_vues: 0 });
 
         return res.status(200).json({
           message: `document ajouté avec id : ${docRef.id}`,

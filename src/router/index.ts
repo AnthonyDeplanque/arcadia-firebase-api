@@ -4,12 +4,14 @@ import { imageRouter } from "./imagesRouter";
 import { userRouter } from "./userRouter";
 import { uuid } from "../helpers/uuid";
 import { animalRouter } from "./animalRouter";
+import { avisRouter } from "./avisRouter";
 
 export const router = (app: Application) => {
   app.use("/user", userRouter);
   app.use("/habitat", habitatRouter);
   app.use("/animal", animalRouter);
   app.use("/image", imageRouter);
+  app.use("/avis", avisRouter);
 
   app.get("/", (req: Request, res: Response) => {
     console.log(uuid());

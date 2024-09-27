@@ -5,6 +5,16 @@ import { userRouter } from "./userRouter";
 import { uuid } from "../helpers/uuid";
 import { animalRouter } from "./animalRouter";
 
+/**
+ * @swagger
+ * /:
+ *   get:
+ *     summary: Page d'accueil
+ *     description: Retourne un message "Hello World !".
+ *     responses:
+ *       200:
+ *         description: Message de succès
+ */
 export const router = (app: Application) => {
   app.use("/user", userRouter);
   app.use("/habitat", habitatRouter);

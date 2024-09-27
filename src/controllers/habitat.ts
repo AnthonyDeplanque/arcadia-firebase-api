@@ -48,7 +48,7 @@ export class HabitatController {
       const requiredFields = ["nom", "description", "commentaire"];
       const error = checkRequiredFields(habitat, requiredFields);
       if (error) {
-        errorHandler(res, error, 403);
+        return errorHandler(res, error, 403);
       }
       getRoleAndRenewToken(req, res, async () => {
         const user = res.locals.user;
@@ -143,7 +143,12 @@ export class HabitatController {
 
       const habitat: Partial<Habitat> = habitatSnapshot.data() as Habitat;
       habitat.images_id = habitat.images_id || []; // Initialiser si undefined
-      images.forEach((image) => habitat.images_id!.push(image)); // On peut maintenant utiliser 'push'
+      images.forEach((image) => {
+        if (habitat.images_id?.length && animal.images_id.includes(image)) {
+          return;
+        }
+        habitat.images_id!.push(image);
+      }); // On peut maintenant utiliser 'push'
 
       getRoleAndRenewToken(req, res, async () => {
         const user = res.locals.user;

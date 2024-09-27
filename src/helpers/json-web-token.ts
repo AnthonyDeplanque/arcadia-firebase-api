@@ -1,6 +1,4 @@
 import jwt from "jsonwebtoken";
-import { authMiddleware } from "../middleware/auth-middleware";
-import { Request, Response } from "express";
 
 require("dotenv").config();
 

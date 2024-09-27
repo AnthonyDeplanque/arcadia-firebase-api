@@ -2,8 +2,7 @@ import { Request, Response } from "express";
 import { admin } from "../firebase-config";
 import { Animal } from "../interfaces/animal";
 import { errorHandler } from "../middleware/errorHandler";
-import { messaging } from "firebase-admin";
-import { checkRequiredFields } from "../middleware/check-required-fields";
+import { checkRequiredFields } from "../helpers/check-required-fields";
 import { getRoleAndRenewToken } from "../middleware/auth-middleware";
 
 export class AnimalController {

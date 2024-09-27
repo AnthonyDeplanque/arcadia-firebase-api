@@ -3,7 +3,7 @@ import { admin } from "../firebase-config";
 import { Habitat } from "../interfaces/habitat";
 import { getRoleAndRenewToken } from "../middleware/auth-middleware";
 import { errorHandler } from "../middleware/errorHandler";
-import { checkRequiredFields } from "../middleware/check-required-fields";
+import { checkRequiredFields } from "../helpers/check-required-fields";
 
 export class HabitatController {
   private db;
@@ -144,7 +144,7 @@ export class HabitatController {
       const habitat: Partial<Habitat> = habitatSnapshot.data() as Habitat;
       habitat.images_id = habitat.images_id || []; // Initialiser si undefined
       images.forEach((image) => {
-        if (habitat.images_id?.length && animal.images_id.includes(image)) {
+        if (habitat.images_id?.length && habitat.images_id.includes(image)) {
           return;
         }
         habitat.images_id!.push(image);

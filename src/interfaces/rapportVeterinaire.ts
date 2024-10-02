@@ -1,4 +1,4 @@
-export interface rapportVeterinaire {
+export interface Rapport {
   date_rapport: Date;
   etat: string;
   taille: number;

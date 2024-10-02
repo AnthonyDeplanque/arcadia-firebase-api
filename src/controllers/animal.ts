@@ -58,7 +58,7 @@ export class AnimalController {
         const user = res.locals.user;
         const token = res.locals.newToken;
 
-        if (user.role !== 0) {
+        if (user.role !== 0 || user.role !== 1) {
           return res.status(403).send("INTERDIT POUR VOTRE RÔLE");
         }
         const docRef = await this.collection.add({ ...animal, nb_vues: 0 });
@@ -86,7 +86,7 @@ export class AnimalController {
         const user = res.locals.user;
         const token = res.locals.newToken;
 
-        if (user.role !== 0) {
+        if (user.role !== 0 || user.role !== 1) {
           return res.status(403).send("INTERDIT POUR VOTRE RÔLE");
         }
         const docRef = await this.collection.doc(id).update(animal);
@@ -109,7 +109,7 @@ export class AnimalController {
       }
       getRoleAndRenewToken(req, res, async () => {
         const { user, newToken: token } = res.locals;
-        if (user.role !== 0) {
+        if (user.role !== 0 || user.role !== 1) {
           return res.status(403).send("INTERDIT POUR VOTRE RÔLE");
         }
         const docRef = await this.collection.doc(id).delete();
@@ -151,7 +151,7 @@ export class AnimalController {
         const user = res.locals.user;
         const token = res.locals.newToken;
 
-        if (user.role !== 0) {
+        if (user.role !== 0 || user.role !== 1) {
           return res.status(403).send("INTERDIT POUR VOTRE RÔLE");
         }
 
@@ -188,7 +188,7 @@ export class AnimalController {
 
       getRoleAndRenewToken(req, res, async () => {
         const { user, newToken: token } = res.locals;
-        if (user.role !== 0) {
+        if (user.role !== 0 || user.role !== 1) {
           return res.status(403).send("INTERDIT POUR VOTRE RÔLE");
         }
         await this.collection.doc(id).update({ images_id: animal.images_id });
